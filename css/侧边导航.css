@@ -1,0 +1,299 @@
+/* 1. 保留全局变量（仅作用于当前模块，不污染全局） */
+:root {
+    --shell-body-color: #E4E9F7; /* 重命名变量避免与全局冲突 */
+    --shell-container-color: #FFF;
+    --shell-primary-color: #695CFE;
+    --shell-primary-light: #F6F5FF;
+    --shell-toggle-color: #DDD;
+    --shell-text-color: #707070;
+}
+
+/* 深色主题变量（仅作用于添加.dark的父容器内） */
+.dark {
+    --shell-body-color: #202224;
+    --shell-container-color: #171717;
+    --shell-primary-color: #3a3b3c;
+    --shell-primary-light: #3a3b3c;
+    --shell-toggle-color: #fff;
+    --shell-text-color: #ccc;
+}
+
+
+/* 2. 模块容器核心样式（替代原body的局部背景作用） */
+.shell {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 250px;
+    padding: 10px 14px;
+    background: var(--shell-container-color); /* 使用模块专属变量 */
+    transition: all 0.3s ease;
+    z-index: 100;
+    background-color: rgb(225, 224, 224);
+    /* 子元素统一盒模型（替代*的全局盒模型） */
+}
+
+/* 3. 模块内子元素统一样式（限定在.shell内，不影响全局） */
+.shell > *,
+.shell div,
+.shell header,
+.shell ul,
+.shell li,
+.shell a,
+.shell img,
+.shell input,
+.shell i,
+.shell span {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* 仅模块内元素使用统一盒模型 */
+}
+
+/* 4. 模块折叠样式 */
+.shell.close {
+    width: 88px;
+}
+
+/* 5. 模块内列表项样式 */
+.shell li {
+    height: 50px;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+/* 6. 图标与图片容器样式 */
+.shell .image,
+.shell .icon {
+    min-width: 60px;
+    border-radius: 6px;
+}
+
+.shell .icon {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 300 23px ''; /* 建议补充字体族，如"Font Awesome, sans-serif" */
+    color: var(--shell-text-color);
+    transition: all 0.3s ease;
+}
+
+/* 7. 文本样式 */
+.shell .text {
+    font: 500 17px ''; /* 建议补充字体族 */
+    white-space: nowrap;
+    opacity: 1;
+    color: var(--shell-text-color);
+    transition: all 0.3s ease;
+}
+
+.shell.close .text {
+    opacity: 0;
+}
+
+/* 8. 头部LOGO区域 */
+.shell header {
+    position: relative;
+}
+
+.shell .image-text {
+    display: flex;
+    align-items: center;
+}
+
+.shell .logo-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.shell .name {
+    margin-top: 2px;
+    font: 600 18px ''; /* 建议补充字体族 */
+    color: var(--shell-text-color);
+}
+
+.shell .software {
+    font-size: 20px;
+    margin-top: -2px;
+    display: block;
+    color: var(--shell-text-color);
+}
+
+.shell .image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shell .image img {
+    width: 45px;
+    border-radius: 6px;
+}
+
+/* 9. 侧边栏折叠按钮 */
+.shell .toggle {
+    position: absolute;
+    top: 50%;
+    right: -25px;
+    transform: translateY(-50%) rotate(180deg);
+    height: 25px;
+    width: 25px;
+    background-color: var(--shell-primary-color);
+    color: #ccc;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.shell.close .toggle {
+    transform: translateY(-50%) rotate(0deg);
+}
+
+/* 10. 菜单区域 */
+.shell .menu {
+    margin-top: 40px;
+}
+
+/* 11. 搜索框 */
+.shell li.search-box {
+    border-radius: 6px;
+    background-color: var(--shell-primary-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.shell li.search-box input {
+    height: 100%;
+    width: 100%;
+    outline: none;
+    border: none;
+    background-color: var(--shell-primary-light);
+    color: var(--shell-text-color);
+    border-radius: 6px;
+    font-size: 17px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    padding: 0 12px; /* 补充内边距，优化输入体验 */
+}
+
+/* 12. 菜单链接 */
+.shell li a {
+    height: 100%;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.shell li a:hover {
+    background-color: var(--shell-primary-color);
+}
+
+.shell li a:hover .icon,
+.shell li a:hover .text {
+    color: var(--shell-container-color); /*  hover时文本/图标颜色与容器背景一致 */
+}
+
+/* 13. 菜单滚动容器 */
+.shell .menu-bar {
+    height: calc(100% - 55px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow-y: scroll;
+}
+
+/* 隐藏滚动条（仅WebKit浏览器） */
+.shell .menu-bar::-webkit-scrollbar {
+    display: none;
+}
+
+/* 14. 深色/浅色模式切换区域 */
+.shell .menu-bar .mode {
+    border-radius: 6px;
+    background-color: var(--shell-primary-light);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.shell .menu-bar .mode .sun-moon {
+    height: 50px;
+    width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shell .mode .sun-moon i {
+    position: absolute;
+    color: var(--shell-text-color);
+    font-size: 20px; /* 补充图标大小，避免继承全局样式 */
+}
+
+.shell .mode .sun-moon i.sun {
+    opacity: 0;
+}
+
+/* 15. 模式切换开关容器 */
+.shell .toggle-switch {
+    position: absolute;
+    right: 0;
+    height: 100%;
+    min-width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* 16. 切换开关样式 */
+.shell .switch {
+    position: relative;
+    height: 22px;
+    width: 40px;
+    border-radius: 25px;
+    background-color: var(--shell-toggle-color);
+    transition: all 0.3s ease;
+}
+
+.shell .switch::before {
+    content: '';
+    position: absolute;
+    height: 15px;
+    width: 15px;
+    border-radius: 50%;
+    top: 50%;
+    left: 5px;
+    transform: translateY(-50%);
+    background-color: var(--shell-container-color);
+    transition: all 0.3s ease;
+}
+
+/* 17. 深色模式下的样式覆盖（仅作用于.shell内） */
+.dark .shell li a:hover .icon,
+.dark .shell li a:hover .text {
+    color: #ccc;
+}
+
+.dark .shell .mode .sun-moon i.sun {
+    opacity: 1;
+}
+
+.dark .shell .mode .sun-moon i.moon {
+    opacity: 0;
+}
+
+.dark .shell .switch::before {
+    left: 20px;
+}

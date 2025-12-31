@@ -1,0 +1,109 @@
+.nav1 {
+            width: 1200px;
+            height: 70px;
+            position: fixed;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            background-color: #fff;
+            bottom: -90px; /* 默认隐藏（超出底部90px） */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            transition: bottom 0.5s ease; /* 平滑滑出动画 */
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-decoration: none;
+        }
+
+        /* 滑出状态的类 */
+        .nav1.show {
+            bottom: 20px; /* 滑出后的位置 */
+        }
+
+        .nav1 ul {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-decoration: none;
+        }
+
+        .nav1 ul .nav-box {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: calc(100% / 6);
+            height: 10px;
+            border-radius: 2px;
+            transition: 0.5s;
+        }
+
+        .nav1 ul li {
+            width: 100%;
+            text-align: center;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-decoration: none;
+        }
+
+        .nav1 ul li a {
+            color: rgb(70, 100, 180);
+            font: 100 30px '优设标题黑';
+            display: block;
+            width: 100%;
+            height: 100%;
+            line-height: 70px;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        /* 鼠标悬停在菜单项上时变色 */
+        .nav1 ul li a:hover {
+            color: #333;
+        }
+
+        /* 导航下划线动画 */
+        .nav1 ul li:nth-child(1):hover~.nav-box {
+            left: calc(100% / 6 * 0);
+            background-color: rgb(250, 190, 250);
+        }
+
+        .nav1 ul li:nth-child(2):hover~.nav-box {
+            left: calc(100% / 6 * 1);
+            background-color: red;
+        }
+
+        .nav1 ul li:nth-child(3):hover~.nav-box {
+            left: calc(100% / 6 * 2);
+            background-color: #d18df8;
+        }
+
+        .nav1 ul li:nth-child(4):hover~.nav-box {
+            left: calc(100% / 6 * 3);
+            background-color: #ffb1b1;
+        }
+
+        .nav1 ul li:nth-child(5):hover~.nav-box {
+            left: calc(100% / 6 * 4);
+            background-color: #8da1f8;
+        }
+
+        .nav1 ul li:nth-child(6):hover~.nav-box {
+            left: calc(100% / 6 * 5);
+            background-color: #7df88e;
+        }
+
+        /* 响应式调整：小屏幕适配 */
+        @media (max-width: 1200px) {
+            .nav1 {
+                width: 90%;
+            }
+            .nav1 ul li a {
+                font-size: 24px;
+            }
+        }
