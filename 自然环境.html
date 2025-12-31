@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>北京自然环境看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/province/beijing.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="./css/css.css">
+    <!-- <link rel="stylesheet" href="./css/侧边导航.css"> -->
+    <link rel="stylesheet" href="./css/跟踪导航栏.css">
+    <style>
+        /* 核心修改：背景改为白色，整体明亮风格 */
+        body { margin: 0; background: #ffffff; color: #333333; font-family: "Microsoft YaHei", sans-serif; overflow: hidden; }
+        
+        /* 页面装饰 UI：调整为淡蓝色渐变，贴合白色主题 */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+            background: radial-gradient(circle at center, transparent 30%, rgba(230, 240, 255, 0.8) 100%); }
+        
+        /* 标题栏：蓝色主题，文字清晰 */
+        .header { position: absolute; top: 20px; left: 20px; border-left: 4px solid #1e88e5; padding-left: 15px; z-index: 10; }
+        .header h1 { margin: 0; font-size: 24px; letter-spacing: 2px; color: #1e88e5; }
+        .header h1 small { color: #42a5f5; }
+        .header div { font-size: 12px; color: #666666; }
+        
+        /* 核心地图容器：保持原有布局 */
+        #map-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; }
+        
+        /* 所有面板：白色背景+蓝色边框/阴影，明亮整洁 */
+        .side-panel { position: absolute; left: 20px; top: 100px; width: 300px; pointer-events: all;
+            background: #ffffff; backdrop-filter: blur(10px); padding: 20px; border-radius: 8px; border: 1px solid #bbdefb; box-shadow: 0 2px 8px rgba(200, 220, 255, 0.5); z-index: 10; }
+        .right-top-panel { position: absolute; right: 20px; top: 100px; width: 280px; pointer-events: all;
+            background: #ffffff; backdrop-filter: blur(10px); padding: 20px; border-radius: 8px; border: 1px solid #bbdefb; box-shadow: 0 2px 8px rgba(200, 220, 255, 0.5); z-index: 10; }
+        .right-bottom-panel { position: absolute; right: 20px; bottom: 20px; width: 280px; pointer-events: all;
+            background: #ffffff; backdrop-filter: blur(10px); padding: 20px; border-radius: 8px; border: 1px solid #bbdefb; box-shadow: 0 2px 8px rgba(200, 220, 255, 0.5); z-index: 10; }
+        .bottom-panel { position: absolute; left: 50%; transform: translateX(-50%); bottom: 20px; width: 600px; pointer-events: all;
+            background: #ffffff; backdrop-filter: blur(10px); padding: 15px 20px; border-radius: 8px; border: 1px solid #bbdefb; box-shadow: 0 2px 8px rgba(200, 220, 255, 0.5); z-index: 10; display: flex; justify-content: space-between; }
+
+        /* 左侧面板数据项：蓝色主题样式 */
+        .data-item { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #bbdefb; }
+        .bar-container { width: 100%; height: 8px; background: #e3f2fd; margin-top: 8px; border-radius: 4px; }
+        .bar-fill { height: 100%; background: linear-gradient(90deg, #1e88e5, #42a5f5); transition: width 1s; border-radius: 4px; }
+        .temp-bar-fill { height: 100%; background: linear-gradient(90deg, #64b5f6, #90caf9); transition: width 1s; border-radius: 4px; }
+        
+        /* 图例、数据卡片：颜色调整为白色主题适配 */
+        .legend { font-size: 12px; color: #333333; margin-top: 5px; line-height: 1.5; }
+        .data-card { text-align: center; width: 120px; }
+        .data-card h4 { margin: 0 0 5px 0; color: #1e88e5; font-size: 14px; }
+        .data-card .value { font-size: 18px; font-weight: bold; margin: 0; color: #212121; }
+        .data-card .unit { font-size: 12px; color: #666666; }
+        h3 { color: #1e88e5; margin-top: 0; border-bottom: 1px solid #bbdefb; padding-bottom: 10px; font-size: 16px; }
+        
+        /* Tooltip：白色背景+蓝色边框，明亮清晰 */
+        .tooltip { position: absolute; background: #ffffff; padding: 5px 10px; border-radius: 4px; font-size: 12px; color: #1e88e5; pointer-events: none; display: none; z-index: 20; border: 1px solid #42a5f5; box-shadow: 0 2px 4px rgba(66, 165, 245, 0.3); }
+        
+        /* 降水图表网格线：淡蓝色，贴合主题 */
+        .grid-line { stroke: rgba(66, 165, 245, 0.1); stroke-width: 1px; }
+    </style>
+</head>
+<body>
+
+    <!-- 过度动画 -->
+    <div class="loading">
+        <svg viewbox='0 0 50 50'>
+            <circle r='25' cx='25' cy='25'></circle>
+        </svg>
+        <p>LOADING</p>
+    </div>
+    <!-- <p onclick="loading.in('./page2.html')" class="title">dasd </p> -->
+    <!-- 在 <body> 内任意位置添加测试按钮 -->
+
+
+    <script>
+        // JIEJOE produce
+        // b站主页：https://space.bilibili.com/3546390319860710
+        const loading = {
+            container: document.querySelector(".loading"),
+            in(target) {
+                this.container.classList.remove("loading_out");
+                setTimeout(() => {
+                    window.location.href = target;
+                }, 1000)
+            },
+            out() {
+                this.container.classList.add("loading_out");
+            }
+        };
+        window.addEventListener("load", () => {
+            loading.out();
+        })
+    </script>
+
+    <!-- 过度动画 -->
+
+<div class="overlay"></div>
+
+<div class="header">
+    <h1>BEIJING NATURE <small style="font-size: 14px;">北京自然环境监测</small></h1>
+    <div>数据维度：区域绿化、气温、降水、地形分布</div>
+</div>
+
+<div id="map-container"></div>
+
+<div class="side-panel" id="sidePanel">
+    <h3>区域生态概况</h3>
+</div>
+
+<div class="right-top-panel">
+    <h3>月度降水分布 (SVG)</h3>
+    <svg id="precipitation-chart" width="240" height="180"></svg>
+    <div class="legend">注：7-8月为汛期（占全年60%以上降水），山区降水量高于平原</div>
+</div>
+
+<div class="right-bottom-panel">
+    <h3>植被类型占比 (SVG)</h3>
+    <svg id="vegetation-pie" width="240" height="160"></svg>
+    <div class="legend">注：森林植被占主导，以针叶林、阔叶林为主</div>
+</div>
+
+<div class="bottom-panel">
+    <div class="data-card">
+        <h4>森林覆盖率</h4>
+        <p class="value">44.6%</p>
+        <p class="unit">年度最新数据</p>
+    </div>
+    <div class="data-card">
+        <h4>年平均气温</h4>
+        <p class="value">13.2℃</p>
+        <p class="unit">温带季风气候</p>
+    </div>
+    <div class="data-card">
+        <h4>年降水量</h4>
+        <p class="value">580mm</p>
+        <p class="unit">集中在夏季汛期</p>
+    </div>
+    <div class="data-card">
+        <h4>山地占比</h4>
+        <p class="value">62%</p>
+        <p class="unit">西北高·东南低</p>
+    </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+/**
+ * 1. ECharts 北京地图（调整配色为白色+蓝色主题）
+ */
+const mapChart = echarts.init(document.getElementById('map-container'));
+const beijingData = [
+    { name: '延庆区', value: 72, terrain: '山区' },
+    { name: '怀柔区', value: 77, terrain: '山区' },
+    { name: '密云区', value: 75, terrain: '山区' },
+    { name: '平谷区', value: 68, terrain: '丘陵' },
+    { name: '门头沟区', value: 70, terrain: '山区' },
+    { name: '昌平区', value: 55, terrain: '丘陵' },
+    { name: '房山区', value: 58, terrain: '丘陵' },
+    { name: '朝阳区', value: 31, terrain: '平原' },
+    { name: '海淀区', value: 42, terrain: '平原' },
+    { name: '丰台区', value: 35, terrain: '平原' },
+    { name: '大兴区', value: 28, terrain: '平原' },
+    { name: '通州区', value: 30, terrain: '平原' },
+    { name: '顺义区', value: 38, terrain: '平原' },
+    { name: '石景山区', value: 40, terrain: '平原' },
+    { name: '西城区', value: 25, terrain: '平原' },
+    { name: '东城区', value: 22, terrain: '平原' }
+];
+
+const option = {
+    backgroundColor: 'transparent',
+    title: { show: false },
+    tooltip: {
+        trigger: 'item',
+        formatter: function(params) {
+            return `<div>${params.name}</div>
+                    <div>绿化覆盖率：${params.value}%</div>
+                    <div>地形类型：${params.data.terrain}</div>`;
+        },
+        backgroundColor: '#ffffff',
+        textStyle: { color: '#1e88e5' },
+        borderColor: '#42a5f5',
+        borderWidth: 1,
+        boxShadow: '0 2px 4px rgba(66, 165, 245, 0.3)'
+    },
+    visualMap: {
+        type: 'continuous',
+        min: 20,
+        max: 80,
+        left: 'left',
+        top: 'bottom',
+        text: ['高', '低'],
+        textStyle: { color: '#1e88e5' },
+        calculable: true,
+        inRange: {
+            // 蓝色系渐变，贴合白色主题
+            color: ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6', '#42a5f5']
+        },
+        backgroundColor: '#ffffff',
+        borderColor: '#bbdefb',
+        borderWidth: 1
+    },
+    series: [
+        {
+            name: '北京区域绿化覆盖率',
+            type: 'map',
+            map: '北京',
+            roam: true,
+            label: {
+                show: true,
+                color: '#212121',
+                fontSize: 10
+            },
+            emphasis: {
+                label: { color: '#1e88e5' },
+                itemStyle: { areaColor: '#bbdefb', opacity: 0.8 }
+            },
+            data: beijingData
+        }
+    ]
+};
+
+mapChart.setOption(option);
+window.addEventListener('resize', () => mapChart.resize());
+
+/**
+ * 2. D3.js - 左侧列表交互
+ */
+const regions = [
+    { name: "延庆 (西北山区)", forest: 72, temp: 11, desc: "高绿化，低气温" },
+    { name: "怀柔 (北部水库区)", forest: 77, temp: 12, desc: "最高绿化覆盖率" },
+    { name: "朝阳 (东部平原)", forest: 31, temp: 15, desc: "城区为主，绿化较低" },
+    { name: "大兴 (南部平原)", forest: 28, temp: 16, desc: "农业区，气温较高" }
+];
+
+const panel = d3.select("#sidePanel");
+const tooltip = d3.select("#tooltip");
+
+const items = panel.selectAll(".data-item")
+    .data(regions)
+    .enter()
+    .append("div")
+    .attr("class", "data-item")
+    .on("mouseover", function(event, d) {
+        tooltip.style("display", "block")
+            .html(`<div>${d.name}</div><div>绿化：${d.forest}% | 气温：${d.temp}℃</div><div>${d.desc}</div>`)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 20) + "px");
+    })
+    .on("mouseout", function() {
+        tooltip.style("display", "none");
+    });
+
+items.append("div")
+    .style("font-weight", "bold")
+    .style("margin-bottom", "5px")
+    .text(d => d.name);
+
+items.append("div")
+    .style("font-size", "13px")
+    .style("color", "#666666")
+    .text(d => `绿化覆盖率：${d.forest}%`);
+const forestBars = items.append("div")
+    .attr("class", "bar-container")
+    .append("div")
+    .attr("class", "bar-fill")
+    .style("width", "0%");
+
+items.append("div")
+    .style("font-size", "13px")
+    .style("color", "#666666")
+    .style("margin-top", "8px")
+    .text(d => `年均气温：${d.temp}℃`);
+const tempBars = items.append("div")
+    .attr("class", "bar-container")
+    .append("div")
+    .attr("class", "temp-bar-fill")
+    .style("width", "0%");
+
+setTimeout(() => {
+    forestBars.style("width", d => d.forest + "%");
+    tempBars.style("width", d => (d.temp + 5) * 4 + "%");
+}, 500);
+
+/**
+ * 3. SVG - 月度降水分布（手动逐个绑定数据，白色+蓝色主题配色）
+ */
+const svgPrecip = d3.select("#precipitation-chart");
+// 手动定义每个月份的完整数据（对象形式）
+const precipitationData = [
+    { month: "1月", value: 2.6, isFlood: false },
+    { month: "2月", value: 5.9, isFlood: false },
+    { month: "3月", value: 9.0, isFlood: false },
+    { month: "4月", value: 26.4, isFlood: false },
+    { month: "5月", value: 28.7, isFlood: false },
+    { month: "6月", value: 70.7, isFlood: false },
+    { month: "7月", value: 175.6, isFlood: true },  // 汛期
+    { month: "8月", value: 182.2, isFlood: true },  // 汛期
+    { month: "9月", value: 48.7, isFlood: false },
+    { month: "10月", value: 18.8, isFlood: false },
+    { month: "11月", value: 6.0, isFlood: false },
+    { month: "12月", value: 2.3, isFlood: false }
+];
+const maxPrecip = d3.max(precipitationData, d => d.value);
+const avgPrecip = d3.mean(precipitationData, d => d.value).toFixed(1);
+
+// 图表布局参数
+const margin = { top: 20, right: 10, bottom: 25, left: 20 };
+const chartWidth = 240 - margin.left - margin.right;
+const chartHeight = 180 - margin.top - margin.bottom;
+const barWidth = chartWidth / precipitationData.length - 2;
+
+// 创建图表容器组
+const chartG = svgPrecip.append("g")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+// 背景网格线
+const yGridValues = [0, 50, 100, 150, 200];
+yGridValues.forEach(y => {
+    chartG.append("line")
+        .attr("class", "grid-line")
+        .attr("x1", 0)
+        .attr("y1", chartHeight - y / (maxPrecip / chartHeight))
+        .attr("x2", chartWidth)
+        .attr("y2", chartHeight - y / (maxPrecip / chartHeight));
+});
+
+// X轴（月份）
+chartG.append("g")
+    .attr("transform", `translate(0, ${chartHeight})`)
+    .selectAll("text")
+    .data(precipitationData)
+    .enter()
+    .append("text")
+    .attr("x", (d, i) => i * (chartWidth / precipitationData.length) + (chartWidth / precipitationData.length) / 2)
+    .attr("y", 20)
+    .attr("text-anchor", "middle")
+    .style("font-size", "9px")
+    .style("color", "#333333")
+    .text(d => d.month);
+
+// Y轴（降水量刻度）
+chartG.append("g")
+    .selectAll("text")
+    .data(yGridValues)
+    .enter()
+    .append("text")
+    .attr("x", -5)
+    .attr("y", d => chartHeight - d / (maxPrecip / chartHeight))
+    .attr("text-anchor", "end")
+    .style("font-size", "9px")
+    .style("color", "#333333")
+    .text(d => d + "");
+
+// Y轴轴线
+chartG.append("line")
+    .attr("x1", 0)
+    .attr("y1", 0)
+    .attr("x2", 0)
+    .attr("y2", chartHeight)
+    .attr("stroke", "rgba(66, 165, 245, 0.3)")
+    .attr("stroke-width", 1);
+
+// X轴轴线
+chartG.append("line")
+    .attr("x1", 0)
+    .attr("y1", chartHeight)
+    .attr("x2", chartWidth)
+    .attr("y2", chartHeight)
+    .attr("stroke", "rgba(66, 165, 245, 0.3)")
+    .attr("stroke-width", 1);
+
+// 降水柱状图 - 白色主题蓝色配色
+const precipBars = chartG.selectAll("rect")
+    .data(precipitationData)
+    .enter()
+    .append("rect")
+    .attr("x", (d, i) => i * (chartWidth / precipitationData.length) + (chartWidth / precipitationData.length - barWidth) / 2)
+    .attr("y", chartHeight)
+    .attr("width", barWidth)
+    .attr("height", 0)
+    .attr("fill", d => d.isFlood ? "rgba(30, 136, 229, 0.7)" : "rgba(66, 165, 245, 0.5)")
+    .attr("stroke", d => d.isFlood ? "#1e88e5" : "#42a5f5")
+    .attr("stroke-width", 1)
+    .attr("rx", 2)
+    .on("mouseover", function(event, d) {
+        let tipText = `<div>${d.month}：${d.value} mm</div>`;
+        if (d.isFlood) {
+            tipText += `<div>【汛期】占全年降水核心占比</div>`;
+        }
+        tooltip.style("display", "block")
+            .html(tipText)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 20) + "px");
+        d3.select(this)
+            .attr("fill", d.isFlood ? "rgba(30, 136, 229, 1)" : "rgba(66, 165, 245, 0.8)")
+            .attr("transform", `scale(1.05, 1.05) translate(${-barWidth * 0.025}, ${-chartHeight * 0.01})`);
+    })
+    .on("mouseout", function(event, d) {
+        tooltip.style("display", "none");
+        d3.select(this)
+            .attr("fill", d.isFlood ? "rgba(30, 136, 229, 0.7)" : "rgba(66, 165, 245, 0.5)")
+            .attr("transform", "scale(1, 1)");
+    });
+
+// 柱状图动画
+precipBars.transition()
+    .duration(1200)
+    .delay((d, i) => i * 80)
+    .attr("y", d => chartHeight - (d.value / maxPrecip) * chartHeight)
+    .attr("height", d => (d.value / maxPrecip) * chartHeight);
+
+// 柱状图顶部数值标签
+chartG.selectAll(".precip-value")
+    .data(precipitationData)
+    .enter()
+    .append("text")
+    .attr("class", "precip-value")
+    .attr("x", (d, i) => i * (chartWidth / precipitationData.length) + (chartWidth / precipitationData.length) / 2)
+    .attr("y", d => chartHeight - (d.value / maxPrecip) * chartHeight - 5)
+    .attr("text-anchor", "middle")
+    .style("font-size", "8px")
+    .style("color", "#1e88e5")
+    .text(d => d.value + "mm")
+    .style("opacity", 0)
+    .transition()
+    .duration(1000)
+    .delay((d, i) => i * 80 + 1200)
+    .style("opacity", 1);
+
+// 平均降水量虚线
+chartG.append("line")
+    .attr("x1", 0)
+    .attr("y1", chartHeight - (avgPrecip / maxPrecip) * chartHeight)
+    .attr("x2", chartWidth)
+    .attr("y2", chartHeight - (avgPrecip / maxPrecip) * chartHeight)
+    .attr("stroke", "rgba(30, 136, 229, 0.6)")
+    .attr("stroke-width", 1)
+    .attr("stroke-dasharray", "4, 2")
+    .style("opacity", 0)
+    .transition()
+    .duration(1000)
+    .delay(2000)
+    .style("opacity", 1);
+
+// 平均降水量标签
+chartG.append("text")
+    .attr("x", chartWidth - 5)
+    .attr("y", chartHeight - (avgPrecip / maxPrecip) * chartHeight - 5)
+    .attr("text-anchor", "end")
+    .style("font-size", "8px")
+    .style("color", "#1e88e5")
+    .text(`平均：${avgPrecip}mm`)
+    .style("opacity", 0)
+    .transition()
+    .duration(1000)
+    .delay(2000)
+    .style("opacity", 1);
+
+// 汛期标注
+chartG.append("text")
+    .attr("x", (6 + 7) * (chartWidth / precipitationData.length) / 2 + (chartWidth / precipitationData.length) / 2)
+    .attr("y", 10)
+    .attr("text-anchor", "middle")
+    .style("font-size", "9px")
+    .style("color", "#1e88e5")
+    .style("font-weight", "bold")
+    .text("汛期")
+    .style("opacity", 0)
+    .transition()
+    .duration(1000)
+    .delay(2500)
+    .style("opacity", 1);
+
+/**
+ * 4. SVG - 植被类型饼图（白色+蓝色主题适配）
+ */
+const svgPie = d3.select("#vegetation-pie");
+const pieRadius = 60;
+const vegetationData = [
+    { name: "针叶林", value: 40, color: "#1e88e5" },
+    { name: "阔叶林", value: 35, color: "#42a5f5" },
+    { name: "农田", value: 15, color: "#64b5f6" },
+    { name: "城市绿化", value: 10, color: "#90caf9" }
+];
+
+const pie = d3.pie().value(d => d.value);
+const arc = d3.arc()
+    .innerRadius(20)
+    .outerRadius(pieRadius);
+const labelArc = d3.arc()
+    .innerRadius(pieRadius + 10)
+    .outerRadius(pieRadius + 10);
+
+const pieG = svgPie.append("g")
+    .attr("transform", `translate(120, 80)`);
+
+const arcs = pieG.selectAll(".arc")
+    .data(pie(vegetationData))
+    .enter()
+    .append("g")
+    .attr("class", "arc");
+
+arcs.append("path")
+    .attr("d", arc)
+    .attr("fill", d => d.data.color)
+    .attr("stroke", "#ffffff")
+    .attr("stroke-width", 1)
+    .on("mouseover", function(event, d) {
+        tooltip.style("display", "block")
+            .html(`<div>${d.data.name}：${d.data.value}%</div>`)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 20) + "px");
+        d3.select(this).attr("opacity", 0.8);
+    })
+    .on("mouseout", function() {
+        tooltip.style("display", "none");
+        d3.select(this).attr("opacity", 1);
+    })
+    .transition()
+    .duration(1500)
+    .attrTween("d", function(d) {
+        const i = d3.interpolate(d.startAngle, d.endAngle);
+        return function(t) {
+            d.endAngle = i(t);
+            return arc(d);
+        };
+    });
+
+arcs.append("text")
+    .attr("transform", d => `translate(${labelArc.centroid(d)})`)
+    .attr("dy", ".35em")
+    .attr("text-anchor", "middle")
+    .style("font-size", "10px")
+    .style("color", "#333333")
+    .text(d => d.data.name)
+    .style("opacity", 0)
+    .transition()
+    .duration(1000)
+    .delay(1500)
+    .style("opacity", 1);
+</script>
+
+<!-- 底边导航栏 -->
+    <div class="bor">
+        <div class="nav1">
+            <ul>
+                <li><a onclick="loading.in('./index.html')" style="cursor: pointer;">首页</a></li>
+                <li><a onclick="loading.in('./北京城建.html')" style="cursor: pointer;">城市建设</a></li>
+                <li><a onclick="loading.in('./社会人文.html')" style="cursor: pointer;">社会人文</a></li>
+                <li><a onclick="loading.in('./自然环境.html')" style="cursor: pointer;">自然环境</a></li>
+                <li><a href="#">敬请期待</a></li>
+                <li><a href="#">敬请期待</a></li>
+                <div class="nav-box"></div>
+            </ul>
+        </div>
+    </div>
+    <!-- 底边导航栏 -->
+
+    <script>
+        const header = document.querySelector('header');
+        const img = document.querySelector('.img');
+        let scrollDistance = 0;
+        let requestId = null;
+        function updateHeaderClipPath() {
+            const clipPathValue = `polygon(0 0, 100% 0%, 100% ${(scrollDistance <= 600) ? 100 - ((scrollDistance / 600) * 60) : 75}%, 0 100%)`;
+            header.style.clipPath = clipPathValue;
+            const scaleValue = 1 + ((scrollDistance / 600) * 1);
+            img.style.transform = `scale(${scaleValue})`;
+            const opacityValue = (scrollDistance / 600);
+        }
+        function scrollHandler(event) {
+            if (event.deltaY < 0) {
+                scrollDistance = Math.max(0, scrollDistance + event.deltaY);
+            } else {
+                scrollDistance = Math.min(600, scrollDistance + event.deltaY);
+            }
+            if (!requestId) {
+                requestId = window.requestAnimationFrame(() => {
+                    updateHeaderClipPath();
+                    requestId = null;
+                });
+            }
+        }
+        window.addEventListener('wheel', scrollHandler);
+
+
+    </script>
+
+    <script src="./JS/跟踪导航栏.js"></script>
+</body>
+</html>
