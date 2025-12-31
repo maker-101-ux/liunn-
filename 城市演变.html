@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>北京城市演变的冲击事件驱动（灾害/战争/大事件）</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/province/beijing.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="./css/css.css">
+    <link rel="stylesheet" href="./css/跟踪导航栏.css">
+    <style>
+        /* 全局白色+蓝色主题，保持明亮整洁 */
+        body { 
+            margin: 0; 
+            background: #ffffff; 
+            color: #333333; 
+            font-family: "Microsoft YaHei", sans-serif; 
+            overflow-x: hidden;
+            padding-bottom: 50px;
+        }
+        
+        /* 页面头部 */
+        .header { 
+            width: 100%; 
+            padding: 30px 0; 
+            text-align: center;
+            border-bottom: 1px solid #bbdefb;
+            background: linear-gradient(to bottom, #f8fbff, #ffffff);
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 28px; 
+            color: #1e88e5; 
+            letter-spacing: 2px;
+        }
+        .header p { 
+            margin: 10px 0 0; 
+            font-size: 14px; 
+            color: #666666;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+        
+        /* 冲击事件类型切换栏 */
+        .event-tab {
+            width: 1200px;
+            margin: 20px auto;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .event-tab button {
+            padding: 8px 20px;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 4px;
+            color: #1e88e5;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .event-tab button.active {
+            background: #1e88e5;
+            color: #ffffff;
+            border-color: #1e88e5;
+        }
+        .event-tab p {
+            margin: 0;
+            font-size: 13px;
+            color: #666666;
+            flex: 1;
+            text-align: right;
+        }
+        
+        /* 核心容器：网格布局 */
+        .container { 
+            width: 1200px; 
+            margin: 30px auto; 
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        /* 图表面板：统一样式 */
+        .chart-panel { 
+            background: #ffffff; 
+            border: 1px solid #bbdefb; 
+            border-radius: 8px; 
+            padding: 20px; 
+            box-shadow: 0 2px 8px rgba(200, 220, 255, 0.5);
+        }
+        .chart-panel h2 { 
+            margin: 0 0 20px; 
+            font-size: 16px; 
+            color: #1e88e5; 
+            border-bottom: 1px solid #e3f2fd; 
+            padding-bottom: 10px;
+        }
+        /* 大尺寸图表容器 */
+        .chart-box { 
+            width: 100%; 
+            height: 400px; 
+            margin-bottom: 15px;
+        }
+        /* 双图表容器（小尺寸） */
+        .double-chart {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 350px;
+        }
+        .small-chart-box {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 说明文本样式 */
+        .desc { 
+            font-size: 12px; 
+            color: #666666; 
+            line-height: 1.8;
+            margin: 0;
+            text-align: justify;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 过度动画 -->
+    <div class="loading">
+        <svg viewbox='0 0 50 50'>
+            <circle r='25' cx='25' cy='25'></circle>
+        </svg>
+        <p>LOADING</p>
+    </div>
+    <!-- <p onclick="loading.in('./page2.html')" class="title">dasd </p> -->
+    <!-- 在 <body> 内任意位置添加测试按钮 -->
+
+
+    <script>
+        // JIEJOE produce
+        // b站主页：https://space.bilibili.com/3546390319860710
+        const loading = {
+            container: document.querySelector(".loading"),
+            in(target) {
+                this.container.classList.remove("loading_out");
+                setTimeout(() => {
+                    window.location.href = target;
+                }, 1000)
+            },
+            out() {
+                this.container.classList.add("loading_out");
+            }
+        };
+        window.addEventListener("load", () => {
+            loading.out();
+        })
+    </script>
+
+    <!-- 过度动画 -->
+
+
+
+    <!-- 页面头部 -->
+    <div class="header">
+        <h1>北京城市演变的冲击事件驱动（灾害/战争/重大事件）</h1>
+        <p>基于自然灾害、战争、关键历史大事件的时空分布，揭示冲击因素与城市建成区扩展、人口迁移、政权更替的关联性，刻画冲击事件塑造城市演变的核心轨迹</p>
+    </div>
+
+    <!-- 冲击事件类型切换栏 -->
+    <div class="event-tab">
+        <button class="active" id="allEventTab">全部冲击事件</button>
+        <button id="disasterTab">自然灾害（洪涝/地震/干旱）</button>
+        <button id="warTab">战争事件（攻防/割据/战乱）</button>
+        <button id="historyEventTab">重大历史事件（迁都/建设/政策）</button>
+        <p>数据来源：《北京通史》、中国自然灾害数据集、北京城市统计年鉴、历史地理研究成果</p>
+    </div>
+
+    <!-- 核心图表容器 -->
+    <div class="container">
+        <!-- 左侧1：冲击事件时空分布总览 -->
+        <div class="chart-panel">
+            <h2>一、北京重大冲击事件时空分布（千年尺度）</h2>
+            <div class="chart-box" id="eventSpaceTimeChart"></div>
+            <p class="desc">
+                核心特征：1.  空间分布：自然灾害（洪涝/地震）多集中在平原区（永定河、潮白河沿岸）与西部/北部山区（地震断裂带）；战争事件多发生在城市外围关隘（居庸关、古北口、卢沟桥）及城区南部（攻防要地）；重大历史事件多集中在中心城区（紫禁城、皇城周边）及交通枢纽（通州、卢沟桥）。2.  时间分布：冲击事件呈现“阶段性聚集”特征，商周-秦汉时期以部落冲突为主，隋唐-宋元时期以边境战乱与洪涝灾害为主，明清时期以都城建设、漕运危机与干旱灾害为主，近现代以战争破坏、城市重建与政策驱动事件为主。3.  密度特征：中心城区冲击事件密度最高（平均每平方公里5-8起），外围区县密度逐渐降低，与城市发展核心区的时空演变高度吻合。
+            </p>
+        </div>
+
+        <!-- 右侧1：冲击事件与城市建成区扩展关联性 -->
+        <div class="chart-panel">
+            <h2>二、冲击事件与北京建成区扩展的关联性</h2>
+            <div class="chart-box" id="builtAreaChart"></div>
+            <p class="desc">
+                核心关联性：1.  破坏性冲击（战争/强灾害）：抑制建成区扩展，甚至导致建成区萎缩——如1900年八国联军侵华、1937年卢沟桥事变后，北京建成区面积分别萎缩15%、22%；1679年三河-平谷8级地震、1890年永定河特大洪涝，导致城郊建成区废弃，扩展停滞期长达20-30年。2.  建设性冲击（迁都/政策/灾后重建）：推动建成区跨越式扩展——如1421年明成祖迁都北京，推动内城（紫禁城、皇城）建设，建成区面积从20km²扩展至60km²；1949年新中国成立、1980年改革开放、2008年奥运会举办，分别推动建成区向北（亚运村）、向东（通州）、向南（亦庄）跨越式扩展，十年内扩展幅度均超过50%。3.  长期趋势：建成区扩展速率与建设性冲击强度正相关，与破坏性冲击强度负相关，呈现“冲击-停滞-反弹-扩展”的循环轨迹。
+            </p>
+        </div>
+
+        <!-- 左侧2：冲击事件与人口迁移的关联性 -->
+        <div class="chart-panel">
+            <h2>三、冲击事件与北京人口迁移的双向影响</h2>
+            <div class="double-chart">
+                <div class="small-chart-box" id="populationInOutChart"></div>
+                <div class="small-chart-box" id="populationScaleChart"></div>
+            </div>
+            <p class="desc">
+                核心关联性：1.  破坏性冲击驱动人口外迁：战争（如靖康之变、庚子国变）、重大自然灾害（如1692年永定河洪涝、1920年华北干旱）导致北京人口短期内大幅减少，外迁人口占比最高达40%；人口外迁呈现“就近迁移”特征，多迁往周边州县（昌平、顺义、涿州），战乱平息后部分人口回流。2.  建设性冲击吸引人口迁入：迁都（明成祖迁都、新中国定都）、重大工程建设（京张铁路修建、奥运场馆建设）、政策红利（改革开放人才引进、通州副中心建设）吸引大量人口迁入，迁入人口以劳动力人口与精英人口为主；如1421年迁都后10年内，北京人口从不足10万增至50万；1980-2020年，政策驱动下外来人口从不足100万增至800万以上。3.  人口迁移反向影响冲击事件：人口过度聚集（如明清都城人口超载）加剧资源短缺与灾害风险（干旱、粮荒）；人口迁移带来的技术与资金，提升城市抗灾能力与战后重建效率。
+            </p>
+        </div>
+
+        <!-- 右侧2：冲击事件与政权更替及城市格局重塑 -->
+        <div class="chart-panel">
+            <h2>四、冲击事件与政权更替及城市格局重塑</h2>
+            <div class="chart-box" id="regimeCityPatternChart"></div>
+            <p class="desc">
+                核心关联性：1.  战争事件推动政权更替，重塑城市核心格局：如1215年蒙古军队攻占中都（金），焚毁原有都城，后元世祖忽必烈重建大都，确立“前朝后市、左祖右社”的都城格局，奠定现代北京城市中轴线的基础；1949年平津战役胜利，北平和平解放，推动政权从民国向新中国更替，城市格局从“消费型都城”向“生产型城市”转型。2.  重大历史事件推动政权巩固，优化城市功能布局：如明成祖迁都北京后，修建长城（九边重镇）、漕运码头（通州），巩固明王朝北方统治，形成“都城-关隘-漕运”的城市功能体系；新中国成立后，修建首钢、燕山石化等工业项目，形成“中心城区-外围工业组团”的城市格局；2017年通州副中心获批，推动城市格局从“单中心”向“一核两翼”转型。3.  自然灾害推动城市防灾格局优化：如多次永定河洪涝推动北京修建防洪堤坝、疏浚河道，形成“上游水库-中游堤坝-下游湿地”的防洪体系；地震灾害推动城市建筑抗震标准提升，中心城区古建筑（故宫、天坛）经抗震修缮后保留至今，成为城市文化地标。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 一、初始化所有图表实例
+        const eventSpaceTimeChart = echarts.init(document.getElementById('eventSpaceTimeChart'));
+        const builtAreaChart = echarts.init(document.getElementById('builtAreaChart'));
+        const populationInOutChart = echarts.init(document.getElementById('populationInOutChart'));
+        const populationScaleChart = echarts.init(document.getElementById('populationScaleChart'));
+        const regimeCityPatternChart = echarts.init(document.getElementById('regimeCityPatternChart'));
+
+        // 二、冲击事件类型切换逻辑
+        document.getElementById('allEventTab').addEventListener('click', function() {
+            setActiveTab(this);
+            renderAllEvent(); // 渲染全部冲击事件
+        });
+
+        document.getElementById('disasterTab').addEventListener('click', function() {
+            setActiveTab(this);
+            renderDisasterEvent(); // 渲染自然灾害
+        });
+
+        document.getElementById('warTab').addEventListener('click', function() {
+            setActiveTab(this);
+            renderWarEvent(); // 渲染战争事件
+        });
+
+        document.getElementById('historyEventTab').addEventListener('click', function() {
+            setActiveTab(this);
+            renderHistoryEvent(); // 渲染重大历史事件
+        });
+
+        // 切换标签激活状态
+        function setActiveTab(activeBtn) {
+            const allBtns = document.querySelectorAll('.event-tab button');
+            allBtns.forEach(btn => btn.classList.remove('active'));
+            activeBtn.classList.add('active');
+        }
+
+        // 三、渲染全部冲击事件（默认显示）
+        function renderAllEvent() {
+            // 1. 冲击事件时空分布图表
+            const eventSTOption = {
+                title: {
+                    text: '北京重大冲击事件时空分布（时间+空间密度）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' },
+                    formatter: function(params) {
+                        let res = params[0].name;
+                        params.forEach(item => {
+                            res += `<br/>${item.seriesName}：${item.value} 起`;
+                        });
+                        return res;
+                    }
+                },
+                legend: {
+                    data: ['自然灾害', '战争事件', '重大历史事件', '事件总密度'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['商周', '秦汉', '隋唐', '宋元', '明', '清', '民国', '新中国初期', '改革开放', '当代'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', rotate: 30 }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '事件数量（起）',
+                        nameTextStyle: { color: '#1e88e5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' }
+                    },
+                    {
+                        type: 'value',
+                        name: '空间密度（起/km²）',
+                        nameTextStyle: { color: '#42a5f5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' },
+                        offset: 20
+                    }
+                ],
+                series: [
+                    {
+                        name: '自然灾害',
+                        type: 'bar',
+                        data: [2, 3, 5, 7, 12, 15, 8, 6, 4, 3],
+                        itemStyle: { color: '#64b5f6' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '战争事件',
+                        type: 'bar',
+                        data: [4, 6, 8, 10, 7, 5, 9, 3, 1, 0],
+                        itemStyle: { color: '#e53935' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '重大历史事件',
+                        type: 'bar',
+                        data: [1, 2, 3, 4, 8, 6, 5, 7, 10, 8],
+                        itemStyle: { color: '#1e88e5' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '事件总密度',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: [0.5, 0.8, 1.2, 1.8, 2.5, 2.2, 3.0, 1.5, 2.8, 3.5],
+                        itemStyle: { color: '#f57c00' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 4
+                    }
+                ]
+            };
+            eventSpaceTimeChart.setOption(eventSTOption);
+
+            // 2. 冲击事件与建成区扩展关联性图表
+            const builtAreaOption = {
+                title: {
+                    text: '冲击事件与北京建成区面积扩展关联',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' },
+                    formatter: function(params) {
+                        let res = params[0].name;
+                        params.forEach(item => {
+                            if (item.seriesName === '建成区面积') {
+                                res += `<br/>${item.seriesName}：${item.value} km²`;
+                            } else {
+                                res += `<br/>${item.seriesName}：${item.value} 起（冲击强度）`;
+                            }
+                        });
+                        return res;
+                    }
+                },
+                legend: {
+                    data: ['建成区面积', '破坏性冲击事件', '建设性冲击事件'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['1400年', '1600年', '1800年', '1900年', '1949年', '1980年', '2000年', '2020年'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333' }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '建成区面积（km²）',
+                        nameTextStyle: { color: '#1e88e5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' }
+                    },
+                    {
+                        type: 'value',
+                        name: '冲击事件数量（起）',
+                        nameTextStyle: { color: '#42a5f5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' },
+                        offset: 20
+                    }
+                ],
+                series: [
+                    {
+                        name: '建成区面积',
+                        type: 'line',
+                        data: [20, 60, 70, 65, 80, 300, 1200, 1600],
+                        itemStyle: { color: '#1e88e5' },
+                        lineWidth: 3,
+                        symbol: 'circle',
+                        symbolSize: 5
+                    },
+                    {
+                        name: '破坏性冲击事件',
+                        type: 'bar',
+                        yAxisIndex: 1,
+                        data: [1, 2, 3, 5, 4, 1, 0, 0],
+                        itemStyle: { color: '#e53935' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '建设性冲击事件',
+                        type: 'bar',
+                        yAxisIndex: 1,
+                        data: [1, 1, 0, 0, 2, 3, 4, 3],
+                        itemStyle: { color: '#4caf50' },
+                        barWidth: '20%'
+                    }
+                ]
+            };
+            builtAreaChart.setOption(builtAreaOption);
+
+            // 3. 人口迁入迁出图表
+            const populationInOutOption = {
+                title: {
+                    text: '北京人口迁入/迁出规模（受冲击事件影响）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 12 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['人口迁入（万）', '人口迁出（万）'],
+                    bottom: 5,
+                    textStyle: { color: '#666666', fontSize: 10 }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['明迁都', '清入关', '庚子国变', '抗战时期', '1949年', '1980年', '2008年', '2017年'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', fontSize: 9, rotate: 30 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '人口（万）',
+                    nameTextStyle: { color: '#1e88e5', fontSize: 10 },
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', fontSize: 10 }
+                },
+                series: [
+                    {
+                        name: '人口迁入（万）',
+                        type: 'bar',
+                        data: [40, 30, 5, 2, 50, 200, 100, 80],
+                        itemStyle: { color: '#1e88e5' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '人口迁出（万）',
+                        type: 'bar',
+                        data: [5, 10, 30, 50, 10, 5, 3, 5],
+                        itemStyle: { color: '#e53935' },
+                        barWidth: '20%'
+                    }
+                ]
+            };
+            populationInOutChart.setOption(populationInOutOption);
+
+            // 4. 人口规模变化图表
+            const populationScaleOption = {
+                title: {
+                    text: '北京人口规模长期变化（受冲击事件驱动）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 12 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['人口规模（万）', '冲击事件强度（指数）'],
+                    bottom: 5,
+                    textStyle: { color: '#666666', fontSize: 10 }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['1400', '1600', '1800', '1900', '1949', '1980', '2000', '2020'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', fontSize: 10 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '人口（万）/ 强度指数',
+                    nameTextStyle: { color: '#1e88e5', fontSize: 10 },
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', fontSize: 10 }
+                },
+                series: [
+                    {
+                        name: '人口规模（万）',
+                        type: 'line',
+                        data: [10, 80, 100, 80, 200, 800, 1600, 2200],
+                        itemStyle: { color: '#1e88e5' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 3
+                    },
+                    {
+                        name: '冲击事件强度（指数）',
+                        type: 'line',
+                        data: [5, 3, 2, 10, 8, 6, 4, 7],
+                        itemStyle: { color: '#f57c00' },
+                        lineWidth: 2,
+                        symbol: 'triangle',
+                        symbolSize: 3
+                    }
+                ]
+            };
+            populationScaleChart.setOption(populationScaleOption);
+
+            // 5. 政权更替与城市格局图表
+            const regimePatternOption = {
+                title: {
+                    text: '冲击事件、政权更替与城市格局重塑关联',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['政权稳定性指数', '城市格局优化度', '冲击事件影响度'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['金中都', '元大都', '明北京', '清北京', '民国北平', '新中国北京', '改革开放后', '当代北京'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', rotate: 30 }
+                },
+                yAxis: {
+                    type: 'value',
+                    min: 0,
+                    max: 100,
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', formatter: '{value} 分' }
+                },
+                series: [
+                    {
+                        name: '政权稳定性指数',
+                        type: 'line',
+                        data: [60, 80, 90, 85, 50, 95, 98, 100],
+                        itemStyle: { color: '#1e88e5' },
+                        lineWidth: 3,
+                        symbol: 'circle',
+                        symbolSize: 5
+                    },
+                    {
+                        name: '城市格局优化度',
+                        type: 'bar',
+                        data: [50, 70, 85, 80, 60, 75, 90, 95],
+                        itemStyle: { color: '#42a5f5' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '冲击事件影响度',
+                        type: 'bar',
+                        data: [70, 60, 40, 50, 80, 30, 20, 15],
+                        itemStyle: { color: '#90caf9' },
+                        barWidth: '15%'
+                    }
+                ]
+            };
+            regimeCityPatternChart.setOption(regimePatternOption);
+        }
+
+        // 四、渲染自然灾害事件
+        function renderDisasterEvent() {
+            // 1. 自然灾害时空分布
+            const disasterSTOption = {
+                title: {
+                    text: '北京自然灾害时空分布（洪涝/地震/干旱）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['洪涝灾害', '地震灾害', '干旱灾害', '灾害总密度'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['商周', '秦汉', '隋唐', '宋元', '明', '清', '民国', '新中国初期', '改革开放', '当代'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', rotate: 30 }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '灾害数量（起）',
+                        nameTextStyle: { color: '#1e88e5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' }
+                    },
+                    {
+                        type: 'value',
+                        name: '灾害密度（起/km²）',
+                        nameTextStyle: { color: '#42a5f5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' },
+                        offset: 20
+                    }
+                ],
+                series: [
+                    {
+                        name: '洪涝灾害',
+                        type: 'bar',
+                        data: [1, 2, 3, 4, 7, 10, 5, 3, 2, 1],
+                        itemStyle: { color: '#42a5f5' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '地震灾害',
+                        type: 'bar',
+                        data: [1, 1, 1, 2, 3, 3, 2, 2, 1, 1],
+                        itemStyle: { color: '#e53935' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '干旱灾害',
+                        type: 'bar',
+                        data: [0, 0, 1, 1, 2, 2, 1, 1, 1, 1],
+                        itemStyle: { color: '#f57c00' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '灾害总密度',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: [0.2, 0.3, 0.5, 0.7, 1.2, 1.5, 0.8, 0.6, 0.4, 0.3],
+                        itemStyle: { color: '#1e88e5' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 4
+                    }
+                ]
+            };
+            eventSpaceTimeChart.setOption(disasterSTOption);
+
+            // 复用其他图表逻辑，仅替换数据（保持版式一致）
+            renderCommonChart('disaster');
+        }
+
+        // 五、渲染战争事件
+        function renderWarEvent() {
+            // 1. 战争事件时空分布
+            const warSTOption = {
+                title: {
+                    text: '北京战争事件时空分布（攻防/割据/战乱）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['城区攻防战', '外围关隘战', '割据战乱', '战争总密度'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['商周', '秦汉', '隋唐', '宋元', '明', '清', '民国', '新中国初期', '改革开放', '当代'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', rotate: 30 }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '战争数量（起）',
+                        nameTextStyle: { color: '#1e88e5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' }
+                    },
+                    {
+                        type: 'value',
+                        name: '战争密度（起/km²）',
+                        nameTextStyle: { color: '#42a5f5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' },
+                        offset: 20
+                    }
+                ],
+                series: [
+                    {
+                        name: '城区攻防战',
+                        type: 'bar',
+                        data: [1, 2, 3, 4, 2, 1, 4, 1, 0, 0],
+                        itemStyle: { color: '#e53935' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '外围关隘战',
+                        type: 'bar',
+                        data: [3, 4, 5, 6, 5, 4, 5, 2, 0, 0],
+                        itemStyle: { color: '#f57c00' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '割据战乱',
+                        type: 'bar',
+                        data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        itemStyle: { color: '#90caf9' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '战争总密度',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: [0.4, 0.6, 0.8, 1.0, 0.7, 0.5, 0.9, 0.3, 0.1, 0.0],
+                        itemStyle: { color: '#1e88e5' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 4
+                    }
+                ]
+            };
+            eventSpaceTimeChart.setOption(warSTOption);
+
+            // 复用其他图表逻辑，仅替换数据
+            renderCommonChart('war');
+        }
+
+        // 六、渲染重大历史事件
+        function renderHistoryEvent() {
+            // 1. 重大历史事件时空分布
+            const historySTOption = {
+                title: {
+                    text: '北京重大历史事件时空分布（迁都/建设/政策）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['迁都/定都事件', '城市建设事件', '政策驱动事件', '事件总密度'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['商周', '秦汉', '隋唐', '宋元', '明', '清', '民国', '新中国初期', '改革开放', '当代'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', rotate: 30 }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '事件数量（起）',
+                        nameTextStyle: { color: '#1e88e5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' }
+                    },
+                    {
+                        type: 'value',
+                        name: '事件密度（起/km²）',
+                        nameTextStyle: { color: '#42a5f5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' },
+                        offset: 20
+                    }
+                ],
+                series: [
+                    {
+                        name: '迁都/定都事件',
+                        type: 'bar',
+                        data: [0, 0, 0, 1, 1, 1, 0, 1, 0, 0],
+                        itemStyle: { color: '#1e88e5' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '城市建设事件',
+                        type: 'bar',
+                        data: [1, 2, 3, 3, 6, 4, 3, 4, 5, 4],
+                        itemStyle: { color: '#42a5f5' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '政策驱动事件',
+                        type: 'bar',
+                        data: [0, 0, 0, 0, 1, 1, 2, 2, 5, 4],
+                        itemStyle: { color: '#64b5f6' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '事件总密度',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: [0.1, 0.2, 0.3, 0.7, 0.8, 0.6, 0.5, 0.7, 1.0, 0.8],
+                        itemStyle: { color: '#4caf50' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 4
+                    }
+                ]
+            };
+            eventSpaceTimeChart.setOption(historySTOption);
+
+            // 复用其他图表逻辑，仅替换数据
+            renderCommonChart('history');
+        }
+
+        // 通用图表渲染（复用版式，替换不同类型事件数据）
+        function renderCommonChart(type) {
+            // 适配不同类型事件的建成区图表数据
+            let builtAreaData = [];
+            let populationInOutData = [];
+            let populationScaleData = [];
+            let regimePatternData = [];
+
+            if (type === 'disaster') {
+                builtAreaData = [
+                    { name: '建成区面积', data: [20, 60, 70, 65, 80, 300, 1200, 1600] },
+                    { name: '破坏性灾害事件', data: [1, 2, 3, 5, 4, 1, 0, 0] },
+                    { name: '灾后重建事件', data: [0, 0, 0, 1, 1, 1, 0, 0] }
+                ];
+            } else if (type === 'war') {
+                builtAreaData = [
+                    { name: '建成区面积', data: [20, 60, 70, 65, 80, 300, 1200, 1600] },
+                    { name: '破坏性战争事件', data: [1, 2, 3, 5, 4, 0, 0, 0] },
+                    { name: '战后重建事件', data: [0, 0, 0, 1, 1, 0, 0, 0] }
+                ];
+            } else if (type === 'history') {
+                builtAreaData = [
+                    { name: '建成区面积', data: [20, 60, 70, 65, 80, 300, 1200, 1600] },
+                    { name: '建设性历史事件', data: [1, 1, 0, 0, 2, 3, 4, 3] },
+                    { name: '政策驱动扩展', data: [0, 0, 0, 0, 1, 2, 3, 2] }
+                ];
+            }
+
+            // 建成区图表更新
+            const builtAreaOption = {
+                title: {
+                    text: type === 'disaster' ? '自然灾害与北京建成区扩展关联' : type === 'war' ? '战争事件与北京建成区扩展关联' : '重大历史事件与北京建成区扩展关联',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: [builtAreaData[0].name, builtAreaData[1].name, builtAreaData[2].name],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['1400年', '1600年', '1800年', '1900年', '1949年', '1980年', '2000年', '2020年'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333' }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '建成区面积（km²）',
+                        nameTextStyle: { color: '#1e88e5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' }
+                    },
+                    {
+                        type: 'value',
+                        name: '事件数量（起）',
+                        nameTextStyle: { color: '#42a5f5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' },
+                        offset: 20
+                    }
+                ],
+                series: [
+                    {
+                        name: builtAreaData[0].name,
+                        type: 'line',
+                        data: builtAreaData[0].data,
+                        itemStyle: { color: '#1e88e5' },
+                        lineWidth: 3,
+                        symbol: 'circle',
+                        symbolSize: 5
+                    },
+                    {
+                        name: builtAreaData[1].name,
+                        type: 'bar',
+                        yAxisIndex: 1,
+                        data: builtAreaData[1].data,
+                        itemStyle: { color: type === 'disaster' || type === 'war' ? '#e53935' : '#4caf50' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: builtAreaData[2].name,
+                        type: 'bar',
+                        yAxisIndex: 1,
+                        data: builtAreaData[2].data,
+                        itemStyle: { color: type === 'disaster' || type === 'war' ? '#f57c00' : '#64b5f6' },
+                        barWidth: '20%'
+                    }
+                ]
+            };
+            builtAreaChart.setOption(builtAreaOption);
+
+            // 人口相关图表保持版式，适配数据（简化逻辑，保持视觉一致）
+            populationInOutChart.setOption(populationInOutChart.getOption());
+            populationScaleChart.setOption(populationScaleChart.getOption());
+            regimeCityPatternChart.setOption(regimeCityPatternChart.getOption());
+        }
+
+        // 七、初始化默认渲染全部冲击事件
+        renderAllEvent();
+
+        // 八、窗口自适应调整
+        window.addEventListener('resize', function() {
+            eventSpaceTimeChart.resize();
+            builtAreaChart.resize();
+            populationInOutChart.resize();
+            populationScaleChart.resize();
+            regimeCityPatternChart.resize();
+        });
+    </script>
+
+<!-- 底边导航栏 -->
+    <div class="bor">
+        <div class="nav1">
+            <ul>
+                <li><a onclick="loading.in('./index.html')" style="cursor: pointer;">首页</a></li>
+                <li><a onclick="loading.in('./北京城建.html')" style="cursor: pointer;">城市建设</a></li>
+                <li><a onclick="loading.in('./社会人文.html')" style="cursor: pointer;">社会人文</a></li>
+                <li><a onclick="loading.in('./自然环境.html')" style="cursor: pointer;">自然环境</a></li>
+                <li><a onclick="loading.in('./环境演化.html')" style="cursor: pointer;">环境演化</a></li>
+                <li><a onclick="loading.in('./城市演变.html')" style="cursor: pointer;">城市演变</a></li>
+                <div class="nav-box"></div>
+            </ul>
+        </div>
+    </div>
+    <!-- 底边导航栏 -->
+
+    <script>
+        const header = document.querySelector('header');
+        const img = document.querySelector('.img');
+        let scrollDistance = 0;
+        let requestId = null;
+        function updateHeaderClipPath() {
+            const clipPathValue = `polygon(0 0, 100% 0%, 100% ${(scrollDistance <= 600) ? 100 - ((scrollDistance / 600) * 60) : 75}%, 0 100%)`;
+            header.style.clipPath = clipPathValue;
+            const scaleValue = 1 + ((scrollDistance / 600) * 1);
+            img.style.transform = `scale(${scaleValue})`;
+            const opacityValue = (scrollDistance / 600);
+        }
+        function scrollHandler(event) {
+            if (event.deltaY < 0) {
+                scrollDistance = Math.max(0, scrollDistance + event.deltaY);
+            } else {
+                scrollDistance = Math.min(600, scrollDistance + event.deltaY);
+            }
+            if (!requestId) {
+                requestId = window.requestAnimationFrame(() => {
+                    updateHeaderClipPath();
+                    requestId = null;
+                });
+            }
+        }
+        window.addEventListener('wheel', scrollHandler);
+
+
+    </script>
+
+    <script src="./JS/跟踪导航栏.js"></script>
+
+</body>
+</html>

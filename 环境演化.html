@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>北京生态环境长期演化轨迹</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/province/beijing.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="./css/css.css">
+    <link rel="stylesheet" href="./css/跟踪导航栏.css">
+    <style>
+        /* 全局白色+蓝色主题，明亮整洁 */
+        body { 
+            margin: 0; 
+            background: #ffffff; 
+            color: #333333; 
+            font-family: "Microsoft YaHei", sans-serif; 
+            overflow-x: hidden;
+            padding-bottom: 50px;
+        }
+        
+        /* 页面头部 */
+        .header { 
+            width: 100%; 
+            padding: 30px 0; 
+            text-align: center;
+            border-bottom: 1px solid #bbdefb;
+            background: linear-gradient(to bottom, #f8fbff, #ffffff);
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 28px; 
+            color: #1e88e5; 
+            letter-spacing: 2px;
+        }
+        .header p { 
+            margin: 10px 0 0; 
+            font-size: 14px; 
+            color: #666666;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* 核心容器：分区域布局 */
+        .container { 
+            width: 1200px; 
+            margin: 30px auto; 
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        /* 图表面板：统一样式 */
+        .chart-panel { 
+            background: #ffffff; 
+            border: 1px solid #bbdefb; 
+            border-radius: 8px; 
+            padding: 20px; 
+            box-shadow: 0 2px 8px rgba(200, 220, 255, 0.5);
+        }
+        .chart-panel h2 { 
+            margin: 0 0 20px; 
+            font-size: 16px; 
+            color: #1e88e5; 
+            border-bottom: 1px solid #e3f2fd; 
+            padding-bottom: 10px;
+        }
+        /* 大尺寸图表容器 */
+        .chart-box { 
+            width: 100%; 
+            height: 400px; 
+            margin-bottom: 15px;
+        }
+        /* 小尺寸双图表容器 */
+        .double-chart {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 350px;
+        }
+        .small-chart-box {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 说明文本样式 */
+        .desc { 
+            font-size: 12px; 
+            color: #666666; 
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        /* 时空维度切换栏 */
+        .time-space-tab {
+            width: 1200px;
+            margin: 20px auto;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .time-space-tab button {
+            padding: 8px 20px;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 4px;
+            color: #1e88e5;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .time-space-tab button.active {
+            background: #1e88e5;
+            color: #ffffff;
+            border-color: #1e88e5;
+        }
+        .time-space-tab p {
+            margin: 0;
+            font-size: 13px;
+            color: #666666;
+            flex: 1;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 过度动画 -->
+    <div class="loading">
+        <svg viewbox='0 0 50 50'>
+            <circle r='25' cx='25' cy='25'></circle>
+        </svg>
+        <p>LOADING</p>
+    </div>
+    <!-- <p onclick="loading.in('./page2.html')" class="title">dasd </p> -->
+    <!-- 在 <body> 内任意位置添加测试按钮 -->
+
+
+    <script>
+        // JIEJOE produce
+        // b站主页：https://space.bilibili.com/3546390319860710
+        const loading = {
+            container: document.querySelector(".loading"),
+            in(target) {
+                this.container.classList.remove("loading_out");
+                setTimeout(() => {
+                    window.location.href = target;
+                }, 1000)
+            },
+            out() {
+                this.container.classList.add("loading_out");
+            }
+        };
+        window.addEventListener("load", () => {
+            loading.out();
+        })
+    </script>
+
+    <!-- 过度动画 -->
+
+    <!-- 页面头部 -->
+    <div class="header">
+        <h1>北京生态环境长期演化轨迹（时空维度可视化）</h1>
+        <p>整合水系、气候、植被自然地理数据，刻画生态演化趋势，揭示其对城市格局、人类聚落及生计方式的深层影响</p>
+    </div>
+
+    <!-- 时空维度切换栏 -->
+    <div class="time-space-tab">
+        <button class="active" id="timeTab">时间维度（千年尺度/百年尺度）</button>
+        <button id="spaceTab">空间维度（市域/流域/地貌单元）</button>
+        <p>数据来源：北京地质勘察院、中国气候数据集、MODIS植被覆盖产品</p>
+    </div>
+
+    <!-- 核心图表容器 -->
+    <div class="container">
+        <!-- 左侧1：水系演化（河流改道+流域变迁） -->
+        <div class="chart-panel">
+            <h2>一、北京水系演化轨迹（永定河/潮白河为主）</h2>
+            <div class="chart-box" id="waterSystemChart"></div>
+            <p class="desc">
+                核心趋势：1. 永定河（古漯水）自全新世以来发生3次重大改道，从北京城区西侧逐渐南移至现河道，直接影响了蓟城、幽州等古聚落的选址；2. 潮白河流域径流深度呈百年尺度波动，明清时期（小冰期）径流减少，导致下游漕运衰落；3. 城市发展导致平原区河网密度从1950年的0.8km/km²降至2020年的0.3km/km²，湿地面积萎缩70%以上；4. 水系变迁直接推动人类聚落从沿河漫滩向阶地迁移，生计方式从渔猎灌溉向工商业转型。
+            </p>
+        </div>
+
+        <!-- 右侧1：气候波动演化（气温+降水） -->
+        <div class="chart-panel">
+            <h2>二、北京气候长期波动特征（温度/降水）</h2>
+            <div class="chart-box" id="climateChart"></div>
+            <p class="desc">
+                核心趋势：1. 千年尺度：全新世大暖期（8000-3000年前）北京年均气温较现今高2-3℃，为原始农业聚落（如上宅文化）兴起提供气候条件；小冰期（14-19世纪）气温降低1-2℃，导致粮食减产，推动京郊屯田制度发展；2. 百年尺度：近100年气温呈显著上升趋势，升温速率0.15℃/10年，降水呈波动下降趋势，干旱频次增加；3. 气候波动直接影响区域农业生产类型（从水稻种植转向旱作杂粮），并推动城市供水系统（如京密引水渠）的建设。
+            </p>
+        </div>
+
+        <!-- 左侧2：植被覆盖变化（时空双维度） -->
+        <div class="chart-panel">
+            <h2>三、北京植被覆盖长期变化（类型/覆盖度）</h2>
+            <div class="double-chart">
+                <div class="small-chart-box" id="vegetationTypeChart"></div>
+                <div class="small-chart-box" id="vegetationCoverChart"></div>
+            </div>
+            <p class="desc">
+                核心趋势：1. 植被类型变化：全新世初期以温带落叶阔叶林为主，随着人类活动加剧，平原区森林逐渐被农田取代，山区森林退化为灌丛草地，近30年（生态工程）山区森林覆盖率从30%提升至60%；2. 植被覆盖度（NDVI）：1982-2020年，山区NDVI上升0.2，平原区（城市建成区）NDVI下降0.15，呈现"山区改善、平原退化"的空间分异；3. 植被变化影响：森林退化导致水土流失加剧，推动古代水土保持工程（如梯田）建设；现代植被恢复改善了区域生态环境，支撑了城市生态屏障功能。
+            </p>
+        </div>
+
+        <!-- 右侧2：生态-人类活动耦合演化 -->
+        <div class="chart-panel">
+            <h2>四、生态演化对城市格局与生计方式的影响</h2>
+            <div class="chart-box" id="couplingChart"></div>
+            <p class="desc">
+                核心影响：1. 城市格局：生态要素（水系、地形、气候）决定了北京"山前冲洪积扇"的城市选址，从蓟城（永定河冲积扇）到现代北京，城市拓展方向始终受水系和植被屏障限制；2. 人类聚落：沿河聚落（如通州、良乡）随河流改道兴衰，山区聚落随植被覆盖变化呈现"扩张-收缩-恢复"的循环；3. 生计方式：全新世暖期（农耕）→ 明清时期（漕运+屯田）→ 近现代（工业+商贸）→ 当代（生态旅游+高端服务业），每一次转型均与气候、水系、植被的演化密切相关；4. 耦合关系：生态环境为人类活动提供承载基础，人类活动反向塑造生态格局，形成相互作用的动态循环。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 一、初始化所有图表
+        // 1. 水系演化图表
+        const waterSystemChart = echarts.init(document.getElementById('waterSystemChart'));
+        // 2. 气候波动图表
+        const climateChart = echarts.init(document.getElementById('climateChart'));
+        // 3. 植被类型图表
+        const vegetationTypeChart = echarts.init(document.getElementById('vegetationTypeChart'));
+        // 4. 植被覆盖度图表
+        const vegetationCoverChart = echarts.init(document.getElementById('vegetationCoverChart'));
+        // 5. 生态-人类活动耦合图表
+        const couplingChart = echarts.init(document.getElementById('couplingChart'));
+
+        // 二、时间维度/空间维度切换逻辑
+        document.getElementById('timeTab').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('spaceTab').classList.remove('active');
+            renderTimeDimension(); // 渲染时间维度图表
+        });
+
+        document.getElementById('spaceTab').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('timeTab').classList.remove('active');
+            renderSpaceDimension(); // 渲染空间维度图表
+        });
+
+        // 三、时间维度图表渲染（默认显示）
+        function renderTimeDimension() {
+            // 1. 水系演化图表（时间维度：千年/百年尺度河流改道+径流变化）
+            const waterOption = {
+                title: {
+                    text: '北京水系演化（千年尺度改道 + 百年尺度径流）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['永定河改道次数', '潮白河年径流深度(mm)', '平原区河网密度(km/km²)'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: [
+                    {
+                        type: 'category',
+                        data: ['全新世初期', '商周时期', '秦汉时期', '隋唐时期', '明清时期', '1950年', '1980年', '2020年'],
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' }
+                    }
+                ],
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '改道次数/河网密度',
+                        nameTextStyle: { color: '#1e88e5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' }
+                    },
+                    {
+                        type: 'value',
+                        name: '径流深度(mm)',
+                        nameTextStyle: { color: '#42a5f5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' },
+                        offset: 20
+                    }
+                ],
+                series: [
+                    {
+                        name: '永定河改道次数',
+                        type: 'bar',
+                        data: [0, 1, 2, 2, 3, 3, 3, 3],
+                        itemStyle: { color: '#1e88e5' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '平原区河网密度(km/km²)',
+                        type: 'line',
+                        data: [1.2, 1.0, 0.9, 0.8, 0.7, 0.8, 0.5, 0.3],
+                        itemStyle: { color: '#64b5f6' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 4
+                    },
+                    {
+                        name: '潮白河年径流深度(mm)',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: [350, 320, 280, 250, 180, 220, 150, 120],
+                        itemStyle: { color: '#42a5f5' },
+                        lineWidth: 2,
+                        symbol: 'triangle',
+                        symbolSize: 4
+                    }
+                ]
+            };
+            waterSystemChart.setOption(waterOption);
+
+            // 2. 气候波动图表（时间维度：千年气温+百年降水）
+            const climateOption = {
+                title: {
+                    text: '北京气候长期波动（千年气温 + 百年降水）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['年均气温偏差(℃)', '年降水量(mm)', '干旱频次(次/10年)'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: [
+                    {
+                        type: 'category',
+                        data: ['8000年前', '5000年前', '3000年前', '1000年前', '1500年', '1800年', '1900年', '1950年', '2000年', '2020年'],
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333', rotate: 30 }
+                    }
+                ],
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '气温偏差(℃)',
+                        nameTextStyle: { color: '#1e88e5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' }
+                    },
+                    {
+                        type: 'value',
+                        name: '降水量(mm)/干旱频次',
+                        nameTextStyle: { color: '#42a5f5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' },
+                        offset: 20
+                    }
+                ],
+                series: [
+                    {
+                        name: '年均气温偏差(℃)',
+                        type: 'line',
+                        data: [2.5, 2.2, 1.5, 0.5, -0.8, -1.2, -0.5, 0.2, 0.8, 1.5],
+                        itemStyle: { color: '#e53935' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 4
+                    },
+                    {
+                        name: '年降水量(mm)',
+                        type: 'bar',
+                        yAxisIndex: 1,
+                        data: [750, 700, 650, 600, 550, 500, 620, 580, 550, 520],
+                        itemStyle: { color: '#42a5f5' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '干旱频次(次/10年)',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: [1, 2, 2, 3, 5, 4, 3, 4, 6, 7],
+                        itemStyle: { color: '#f57c00' },
+                        lineWidth: 2,
+                        symbol: 'diamond',
+                        symbolSize: 4
+                    }
+                ]
+            };
+            climateChart.setOption(climateOption);
+
+            // 3. 植被类型变化图表（时间维度：各类型占比）
+            const vegTypeOption = {
+                title: {
+                    text: '北京植被类型占比变化（千年尺度）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 12 }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' },
+                    formatter: '{b}: {c}%'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left',
+                    textStyle: { color: '#666666', fontSize: 10 },
+                    data: ['阔叶林', '灌丛草地', '农田', '城市建设用地', '湿地']
+                },
+                series: [
+                    {
+                        name: '植被类型占比',
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        center: ['50%', '50%'],
+                        data: [
+                            { value: 25, name: '阔叶林' },
+                            { value: 30, name: '灌丛草地' },
+                            { value: 28, name: '农田' },
+                            { value: 15, name: '城市建设用地' },
+                            { value: 2, name: '湿地' }
+                        ],
+                        itemStyle: {
+                            color: function(params) {
+                                const colorList = ['#1e88e5', '#42a5f5', '#64b5f6', '#90caf9', '#bbdefb'];
+                                return colorList[params.dataIndex];
+                            }
+                        },
+                        label: {
+                            show: true,
+                            fontSize: 10,
+                            color: '#333333'
+                        }
+                    }
+                ]
+            };
+            vegetationTypeChart.setOption(vegTypeOption);
+
+            // 4. 植被覆盖度变化图表（时间维度：NDVI趋势）
+            const vegCoverOption = {
+                title: {
+                    text: '北京植被覆盖度（NDVI）变化（1982-2020）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 12 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['山区NDVI', '平原区NDVI', '市域平均NDVI'],
+                    bottom: 5,
+                    textStyle: { color: '#666666', fontSize: 10 }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['1982', '1990', '2000', '2010', '2020'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', fontSize: 10 }
+                },
+                yAxis: {
+                    type: 'value',
+                    min: 0,
+                    max: 0.8,
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', fontSize: 10 }
+                },
+                series: [
+                    {
+                        name: '山区NDVI',
+                        type: 'line',
+                        data: [0.35, 0.42, 0.48, 0.52, 0.58],
+                        itemStyle: { color: '#1e88e5' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 3
+                    },
+                    {
+                        name: '平原区NDVI',
+                        type: 'line',
+                        data: [0.40, 0.38, 0.35, 0.30, 0.25],
+                        itemStyle: { color: '#f57c00' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 3
+                    },
+                    {
+                        name: '市域平均NDVI',
+                        type: 'line',
+                        data: [0.36, 0.40, 0.42, 0.45, 0.46],
+                        itemStyle: { color: '#42a5f5' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 3
+                    }
+                ]
+            };
+            vegetationCoverChart.setOption(vegCoverOption);
+
+            // 5. 生态-人类活动耦合图表（时间维度：耦合度+生计方式）
+            const couplingOption = {
+                title: {
+                    text: '北京生态-人类活动耦合度及生计方式演化',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['生态-人类活动耦合度', '农耕占比', '工商业占比', '生态服务业占比'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['全新世暖期', '商周', '秦汉', '隋唐', '明清', '民国', '1950s', '2000s', '2020s'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', rotate: 30 }
+                },
+                yAxis: {
+                    type: 'value',
+                    min: 0,
+                    max: 100,
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', formatter: '{value}%' }
+                },
+                series: [
+                    {
+                        name: '生态-人类活动耦合度',
+                        type: 'line',
+                        data: [20, 35, 45, 50, 65, 70, 80, 85, 90],
+                        itemStyle: { color: '#1e88e5' },
+                        lineWidth: 3,
+                        symbol: 'circle',
+                        symbolSize: 5
+                    },
+                    {
+                        name: '农耕占比',
+                        type: 'bar',
+                        data: [95, 90, 85, 80, 75, 60, 40, 15, 5],
+                        itemStyle: { color: '#64b5f6' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '工商业占比',
+                        type: 'bar',
+                        data: [2, 5, 10, 15, 20, 35, 50, 70, 75],
+                        itemStyle: { color: '#42a5f5' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '生态服务业占比',
+                        type: 'bar',
+                        data: [1, 1, 1, 1, 2, 3, 5, 15, 20],
+                        itemStyle: { color: '#bbdefb' },
+                        barWidth: '15%'
+                    }
+                ]
+            };
+            couplingChart.setOption(couplingOption);
+        }
+
+        // 四、空间维度图表渲染
+        function renderSpaceDimension() {
+            // 1. 水系演化图表（空间维度：流域分布+河网密度）
+            const waterSpaceOption = {
+                title: {
+                    text: '北京水系空间分布（流域+河网密度）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['永定河流域', '潮白河流域', '拒马河流域', '泃河流域', '其他流域'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['西部山区', '北部山区', '平原北部', '平原中部', '平原南部'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333' }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '河网密度(km/km²)',
+                    nameTextStyle: { color: '#1e88e5' },
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333' }
+                },
+                series: [
+                    {
+                        name: '永定河流域',
+                        type: 'bar',
+                        data: [0.6, 0.4, 0.5, 0.3, 0.2],
+                        itemStyle: { color: '#1e88e5' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '潮白河流域',
+                        type: 'bar',
+                        data: [0.7, 0.8, 0.6, 0.4, 0.1],
+                        itemStyle: { color: '#42a5f5' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '拒马河流域',
+                        type: 'bar',
+                        data: [0.8, 0.5, 0.2, 0.1, 0.1],
+                        itemStyle: { color: '#64b5f6' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '泃河流域',
+                        type: 'bar',
+                        data: [0.5, 0.6, 0.3, 0.2, 0.1],
+                        itemStyle: { color: '#90caf9' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '其他流域',
+                        type: 'bar',
+                        data: [0.3, 0.2, 0.1, 0.1, 0.1],
+                        itemStyle: { color: '#bbdefb' },
+                        barWidth: '15%'
+                    }
+                ]
+            };
+            waterSystemChart.setOption(waterSpaceOption);
+
+            // 2. 气候波动图表（空间维度：气温/降水空间分异）
+            const climateSpaceOption = {
+                title: {
+                    text: '北京气候空间分异（气温/降水）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['年均气温(℃)', '年降水量(mm)', '≥10℃积温(℃)'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['西部山区', '北部山区', '延庆盆地', '平原北部', '平原南部'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333' }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '气温(℃)',
+                        nameTextStyle: { color: '#1e88e5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' }
+                    },
+                    {
+                        type: 'value',
+                        name: '降水量(mm)',
+                        nameTextStyle: { color: '#42a5f5' },
+                        axisLine: { lineStyle: { color: '#bbdefb' } },
+                        axisLabel: { color: '#333333' },
+                        offset: 20
+                    }
+                ],
+                series: [
+                    {
+                        name: '年均气温(℃)',
+                        type: 'line',
+                        data: [10.5, 9.8, 11.2, 12.5, 13.0],
+                        itemStyle: { color: '#e53935' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 4
+                    },
+                    {
+                        name: '年降水量(mm)',
+                        type: 'bar',
+                        yAxisIndex: 1,
+                        data: [650, 700, 550, 520, 480],
+                        itemStyle: { color: '#42a5f5' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '≥10℃积温(℃)',
+                        type: 'line',
+                        data: [3800, 3600, 4000, 4500, 4800],
+                        itemStyle: { color: '#f57c00' },
+                        lineWidth: 2,
+                        symbol: 'triangle',
+                        symbolSize: 4
+                    }
+                ]
+            };
+            climateChart.setOption(climateSpaceOption);
+
+            // 3. 植被类型图表（空间维度：地貌单元植被分布）
+            const vegTypeSpaceOption = {
+                title: {
+                    text: '北京植被空间分布（地貌单元）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 12 }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' },
+                    formatter: '{b}: {c}%'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left',
+                    textStyle: { color: '#666666', fontSize: 10 },
+                    data: ['阔叶林', '灌丛', '农田', '城市用地', '湿地']
+                },
+                series: [
+                    {
+                        name: '植被占比',
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        center: ['50%', '50%'],
+                        data: [
+                            { value: 22, name: '阔叶林（山区）' },
+                            { value: 32, name: '灌丛（低山丘陵）' },
+                            { value: 30, name: '农田（平原）' },
+                            { value: 14, name: '城市用地（平原）' },
+                            { value: 2, name: '湿地（沿河）' }
+                        ],
+                        itemStyle: {
+                            color: function(params) {
+                                const colorList = ['#1e88e5', '#42a5f5', '#64b5f6', '#90caf9', '#bbdefb'];
+                                return colorList[params.dataIndex];
+                            }
+                        },
+                        label: {
+                            show: true,
+                            fontSize: 9,
+                            color: '#333333'
+                        }
+                    }
+                ]
+            };
+            vegetationTypeChart.setOption(vegTypeSpaceOption);
+
+            // 4. 植被覆盖度图表（空间维度：市域NDVI分布）
+            const vegCoverSpaceOption = {
+                title: {
+                    text: '北京NDVI空间分异（2020年）',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 12 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['NDVI值', '植被覆盖等级'],
+                    bottom: 5,
+                    textStyle: { color: '#666666', fontSize: 10 }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['门头沟', '密云', '延庆', '昌平', '朝阳', '海淀', '通州', '大兴'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', fontSize: 9, rotate: 30 }
+                },
+                yAxis: {
+                    type: 'value',
+                    min: 0,
+                    max: 0.8,
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', fontSize: 10 }
+                },
+                series: [
+                    {
+                        name: 'NDVI值',
+                        type: 'bar',
+                        data: [0.62, 0.59, 0.55, 0.48, 0.22, 0.25, 0.28, 0.20],
+                        itemStyle: { color: '#1e88e5' },
+                        barWidth: '20%'
+                    },
+                    {
+                        name: '植被覆盖等级',
+                        type: 'line',
+                        data: [5, 5, 4, 4, 2, 2, 2, 1],
+                        itemStyle: { color: '#f57c00' },
+                        lineWidth: 2,
+                        symbol: 'circle',
+                        symbolSize: 3
+                    }
+                ]
+            };
+            vegetationCoverChart.setOption(vegCoverSpaceOption);
+
+            // 5. 生态-人类活动耦合图表（空间维度：区县耦合度）
+            const couplingSpaceOption = {
+                title: {
+                    text: '北京各区县生态-人类活动耦合度',
+                    left: 'center',
+                    textStyle: { color: '#1e88e5', fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#42a5f5',
+                    textStyle: { color: '#333333' }
+                },
+                legend: {
+                    data: ['耦合度', '人类活动强度', '生态质量'],
+                    bottom: 10,
+                    textStyle: { color: '#666666' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    top: '15%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['密云', '门头沟', '延庆', '怀柔', '昌平', '顺义', '朝阳', '海淀'],
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', rotate: 30 }
+                },
+                yAxis: {
+                    type: 'value',
+                    min: 0,
+                    max: 100,
+                    axisLine: { lineStyle: { color: '#bbdefb' } },
+                    axisLabel: { color: '#333333', formatter: '{value}%' }
+                },
+                series: [
+                    {
+                        name: '耦合度',
+                        type: 'line',
+                        data: [85, 88, 82, 86, 75, 70, 90, 92],
+                        itemStyle: { color: '#1e88e5' },
+                        lineWidth: 3,
+                        symbol: 'circle',
+                        symbolSize: 5
+                    },
+                    {
+                        name: '人类活动强度',
+                        type: 'bar',
+                        data: [30, 25, 20, 28, 60, 70, 95, 98],
+                        itemStyle: { color: '#42a5f5' },
+                        barWidth: '15%'
+                    },
+                    {
+                        name: '生态质量',
+                        type: 'bar',
+                        data: [95, 90, 92, 94, 70, 60, 40, 35],
+                        itemStyle: { color: '#64b5f6' },
+                        barWidth: '15%'
+                    }
+                ]
+            };
+            couplingChart.setOption(couplingSpaceOption);
+        }
+
+        // 五、初始化默认渲染时间维度图表
+        renderTimeDimension();
+
+        // 六、窗口自适应调整
+        window.addEventListener('resize', function() {
+            waterSystemChart.resize();
+            climateChart.resize();
+            vegetationTypeChart.resize();
+            vegetationCoverChart.resize();
+            couplingChart.resize();
+        });
+    </script>
+
+<!-- 底边导航栏 -->
+    <div class="bor">
+        <div class="nav1">
+            <ul>
+                <li><a onclick="loading.in('./index.html')" style="cursor: pointer;">首页</a></li>
+                <li><a onclick="loading.in('./北京城建.html')" style="cursor: pointer;">城市建设</a></li>
+                <li><a onclick="loading.in('./社会人文.html')" style="cursor: pointer;">社会人文</a></li>
+                <li><a onclick="loading.in('./自然环境.html')" style="cursor: pointer;">自然环境</a></li>
+                <li><a onclick="loading.in('./环境演化.html')" style="cursor: pointer;">环境演化</a></li>
+                <li><a onclick="loading.in('./城市演变.html')" style="cursor: pointer;">城市演变</a></li>
+                <div class="nav-box"></div>
+            </ul>
+        </div>
+    </div>
+    <!-- 底边导航栏 -->
+
+    <script>
+        const header = document.querySelector('header');
+        const img = document.querySelector('.img');
+        let scrollDistance = 0;
+        let requestId = null;
+        function updateHeaderClipPath() {
+            const clipPathValue = `polygon(0 0, 100% 0%, 100% ${(scrollDistance <= 600) ? 100 - ((scrollDistance / 600) * 60) : 75}%, 0 100%)`;
+            header.style.clipPath = clipPathValue;
+            const scaleValue = 1 + ((scrollDistance / 600) * 1);
+            img.style.transform = `scale(${scaleValue})`;
+            const opacityValue = (scrollDistance / 600);
+        }
+        function scrollHandler(event) {
+            if (event.deltaY < 0) {
+                scrollDistance = Math.max(0, scrollDistance + event.deltaY);
+            } else {
+                scrollDistance = Math.min(600, scrollDistance + event.deltaY);
+            }
+            if (!requestId) {
+                requestId = window.requestAnimationFrame(() => {
+                    updateHeaderClipPath();
+                    requestId = null;
+                });
+            }
+        }
+        window.addEventListener('wheel', scrollHandler);
+
+
+    </script>
+
+    <script src="./JS/跟踪导航栏.js"></script>
+
+</body>
+</html>
