@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据可视化大作业</title>
+    <link rel="stylesheet" href="./css/css.css">
+    <!-- <link rel="stylesheet" href="./css/侧边导航.css"> -->
+    <link rel="stylesheet" href="./css/跟踪导航栏.css">
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+
+        body {
+            height: 2000px;
+            overflow-x: hidden;
+
+        }
+
+        .shells {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+
+        }
+
+        header {
+            width: 100%;
+            height: 700px;
+            overflow: hidden;
+            clip-path: polygon(0 0, 100% 0%, 100% 100%, 0 100%);
+            transition: clip-path 0.5s ease;
+            position: relative;
+        }
+
+        .img {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background: url(./images/天坛.png);
+            background-size: cover;
+            transform: scale(1);
+            transition: transform 0.5s ease;
+        }
+
+        .main {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            margin-top: 100px;
+        }
+
+        .main h2 {
+            font-size: 50px;
+            margin-bottom: 40px;
+        }
+
+        .main span {
+            padding: 0 100px;
+            font-size: 30px;
+        }
+
+
+
+        @import url('https://fonts.googleapis.com/css?family=Lato:700,900');
+
+        @font-face {
+            font-family: Arno Pro;
+            src: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/4273/ArnoPro-Regular.otf);
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: Arno Pro;
+            src: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/4273/ArnoPro-Italic.otf);
+            font-style: italic;
+        }
+
+        p {
+            font-family: Arno Pro, serif;
+            font-size: 1.4rem;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        p.credits {
+            font-style: italic;
+            text-indent: 0 !important;
+            margin: 1rem 0;
+        }
+
+        p a {
+            font-weight: bolder;
+            color: #000;
+            text-decoration: none;
+        }
+
+        @supports (font-variant-caps: small-caps) {
+            .multicol:first-of-type p:first-of-type {
+                font-variant-caps: small-caps;
+            }
+        }
+
+        p:not(:first-of-type) {
+            text-indent: 1.4rem;
+        }
+
+        .multicol {
+            column-count: 4;
+            column-gap: 2rem;
+        }
+
+        .multicol+img {
+            margin: 2rem 0;
+        }
+
+        article {
+            width: 80%;
+            margin: 0 auto 4rem;
+        }
+
+        article img {
+            width: 100%;
+        }
+
+        article header {
+            margin-bottom: 2.5rem;
+            padding-bottom: 4rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.8);
+        }
+
+        article h1 {
+            margin-top: 0;
+            font-size: 3rem;
+        }
+
+        article h2 {
+            break-after: column;
+            font-size: 1.5rem;
+        }
+
+        h1,
+        h2 {
+            font-family: Lato, sans-serif;
+        }
+
+        @media all and (max-width: 1600px) {
+            .multicol {
+                column-count: 3;
+            }
+        }
+
+        @media all and (max-width: 1000px) {
+            .multicol {
+                column-count: 2;
+            }
+        }
+
+        @media all and (max-width:800px) {
+            article h2 {
+                break-after: avoid;
+            }
+
+            .multicol {
+                column-count: 1;
+            }
+        }
+
+        @media all and (max-width:600px) {
+            body {
+                margin: 0;
+            }
+
+            article {
+                width: 100%;
+            }
+
+            .multicol {
+                padding: 0 1rem;
+            }
+
+            article header {
+                margin-bottom: 2.5rem;
+                padding-bottom: 0;
+                border-bottom: none;
+            }
+
+            h1 {
+                margin-bottom: 0;
+            }
+        }
+
+        /*  */
+
+        .title {
+            font-family: sans-serif;
+            font-size: 10rem;
+            color: #17f700;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .title span {
+            font-size: 10rem;
+            color: #f7f7f7;
+        }
+
+        .ceshi {
+            float: right;
+        }
+
+        .ok{
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 过度动画 -->
+    <div class="loading">
+        <svg viewbox='0 0 50 50'>
+            <circle r='25' cx='25' cy='25'></circle>
+        </svg>
+        <p>LOADING</p>
+    </div>
+    <!-- <p onclick="loading.in('./page2.html')" class="title">dasd </p> -->
+    <!-- 在 <body> 内任意位置添加测试按钮 -->
+
+
+    <script>
+        // JIEJOE produce
+        // b站主页：https://space.bilibili.com/3546390319860710
+        const loading = {
+            container: document.querySelector(".loading"),
+            in(target) {
+                this.container.classList.remove("loading_out");
+                setTimeout(() => {
+                    window.location.href = target;
+                }, 1000)
+            },
+            out() {
+                this.container.classList.add("loading_out");
+            }
+        };
+        window.addEventListener("load", () => {
+            loading.out();
+        })
+    </script>
+
+    <!-- 过度动画 -->
+
+
+
+    <!--  -->
+    <div class="shells">
+        <header>
+            <div class="img"></div>
+        </header>
+        <div class="main">
+            <main>
+                <article>
+                    <div class="ok">
+                        <h1>北京数据可视化</h1>
+                        <h2></h2>
+
+                    </div>
+                    <img src="./images/长城.png" alt=" ">
+                    <div class="multicol">
+                        <p> 一、北京城市发展脉络：北京的城市发展脉络是一部跨越千年的文明史诗。其起源可追溯至西周时期的蓟城，作为燕国都城，为城市发展奠定了早期根基。辽金时期，北京成为北方少数民族政权的统治中心，辽代的南京城、金代的中都城在此基础上不断扩建，推动了城市规模的扩大与文化的交融。
+                            元明清三代，北京作为大一统王朝的首都，迎来了城市发展的鼎盛期。元大都的规划构建了 “前朝后市，左祖右社”
+                            的都城格局，明清时期在此基础上进一步完善，故宫、天坛、颐和园等标志性建筑拔地而起，城市规模、人口数量都达到了前所未有的高度。
+                            近现代以来，北京历经沧桑变革。从清末的动荡到民国时期的转型，再到新中国成立后，北京正式成为中华人民共和国的首都，开启了全方位的建设征程。如今的北京，在传承千年古都文化底蕴的同时，已发展成为一座具有全球影响力的国际化大都市，在城市规划、经济发展、文化传播等多个领域持续书写着新的发展篇章。
+                        </p>
+                    </div>
+                    <img src="./images/故宫.png" alt="">
+                    <div class="multicol">
+                        <p>二、北京社会人文的多彩画卷:北京的社会人文是一幅交织着传统与现代、多元与独特的多彩画卷。这里是多民族文化交融的沃土，汉族、满族、蒙古族等各民族文化在此碰撞、融合，形成了独具魅力的京城文化生态。胡同与四合院是老北京人文的鲜活载体，灰墙黛瓦间藏着市井百态，承载着一代又一代人的生活记忆。故宫、天坛等古建筑群则是中华文明的艺术瑰宝，每一处雕梁画栋都镌刻着历史的印记。
+                            艺术领域，京剧、相声等传统艺术在这里发源并走向鼎盛，梅兰芳的水袖、马三立的逗哏，都是京城人文的生动注脚；同时现代艺术形式也在此蓬勃生长，798
+                            艺术区等成为当代艺术的先锋阵地。饮食文化上，烤鸭的酥脆、炸酱面的酱香、豆汁的独特，构成了舌尖上的京城烟火。节庆时，春节庙会的热闹、中秋北海的赏月、端午龙潭的赛龙舟，民俗活动延续着老北京的文化根脉，让这座城市在古典与现代的交织中，始终散发着浓郁的人文气息。
+                        </p>
+                    </div>
+                    <img src="./images/胡同.png" alt="">
+                    <div class="multicol">
+                        <p>三、北京自然环境的变迁之歌
+                            北京的自然环境变迁如同一首跌宕的长歌，在山水与城市的共生中奏响千年韵律。它背靠西山、燕山山脉，面朝华北平原，独特的地貌格局奠定了自然基底。境内蓟运河、潮白河、北运河、永定河、大清河五大水系纵横交错，千百年来滋养着城市的发展。
+                            古代，北京先民便展现出卓越的水利智慧，元大都的漕运系统、历代的治水工程，让水系成为城市的 “灵脉”。近现代以来，城市扩张对自然环境带来挑战，也曾面临水资源紧张、生态压力等问题。
+                            如今，北京以生态优先的理念推动自然环境的修复与保护，大规模的绿化工程让森林覆盖率持续提升，水资源治理让河道重焕生机，在城市发展与自然保护的平衡中，谱写着山水都市的新乐章，让 “灵脉”
+                            在新时代继续滋养着这座千年古都。
+                        </p>
+                    </div>
+
+                </article>
+            </main>
+        </div>
+    </div>
+
+    <!-- 底边导航栏 -->
+    <div class="bor">
+        <div class="nav1">
+            <ul>
+                <li><a onclick="loading.in('./index.html')" style="cursor: pointer;">首页</a></li>
+                <li><a onclick="loading.in('./北京城建.html')" style="cursor: pointer;">城市建设</a></li>
+                <li><a onclick="loading.in('./社会人文.html')" style="cursor: pointer;">社会人文</a></li>
+                <li><a onclick="loading.in('./自然环境.html')" style="cursor: pointer;">自然环境</a></li>
+                <li><a href="#">敬请期待</a></li>
+                <li><a href="#">敬请期待</a></li>
+                <div class="nav-box"></div>
+            </ul>
+        </div>
+    </div>
+    <!-- 底边导航栏 -->
+
+    <script>
+        const header = document.querySelector('header');
+        const img = document.querySelector('.img');
+        let scrollDistance = 0;
+        let requestId = null;
+        function updateHeaderClipPath() {
+            const clipPathValue = `polygon(0 0, 100% 0%, 100% ${(scrollDistance <= 600) ? 100 - ((scrollDistance / 600) * 60) : 75}%, 0 100%)`;
+            header.style.clipPath = clipPathValue;
+            const scaleValue = 1 + ((scrollDistance / 600) * 1);
+            img.style.transform = `scale(${scaleValue})`;
+            const opacityValue = (scrollDistance / 600);
+        }
+        function scrollHandler(event) {
+            if (event.deltaY < 0) {
+                scrollDistance = Math.max(0, scrollDistance + event.deltaY);
+            } else {
+                scrollDistance = Math.min(600, scrollDistance + event.deltaY);
+            }
+            if (!requestId) {
+                requestId = window.requestAnimationFrame(() => {
+                    updateHeaderClipPath();
+                    requestId = null;
+                });
+            }
+        }
+        window.addEventListener('wheel', scrollHandler);
+
+
+    </script>
+
+    <script src="./JS/跟踪导航栏.js"></script>
+</body>
+
+</html>
